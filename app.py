@@ -3,6 +3,8 @@ import time
 import streamlit as st
 from dotenv import load_dotenv
 from langchain_utils import load_chunks, vector_store, create_chain
+from langchain.memory import ConversationBufferMemory
+from langchain.schema import AIMessage, HumanMessage
 
 
 HF_TOKEN = st.secrets["HUGGINGFACEHUB_API_TOKEN"]
@@ -20,12 +22,18 @@ st.set_page_config(
 )
 st.title("📝 Talk to Your Doc")
 
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
-
 if st.button("Reset Session",help="Reset this conversation.",type="primary"):
     st.session_state.clear()
+    st.session_state.memory = ConversationBufferMemory(
+        memory_key="chat_history", return_messages=True
+    )
     st.rerun()
+
+if "memory" not  in st.session_state:
+    st.session_state.memory = ConversationBufferMemory(
+        memory_key="chat_history", return_messages=True
+    )
+
 
 
 uploaded_files = st.file_uploader(label="Upload your (PDF, TXT, DOCX, CSV)",
@@ -41,25 +49,25 @@ if uploaded_files:
         st.session_state.vectorstores = vector_store(all_chunks,vector_store_path)
 
     if "conversation_chain" not in st.session_state:
-        st.session_state.conversation_chain = create_chain(st.session_state.vectorstores)
+        st.session_state.conversation_chain = create_chain(st.session_state.vectorstores, memory=st.session_state.memory)
 
-for message in st.session_state.chat_history:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+if "memory" in st.session_state:
+    for msg in st.session_state.memory.chat_memory.messages:
+        role = "user" if isinstance(msg, HumanMessage) else "assistant"
+        with st.chat_message(role):
+            st.markdown(msg.content)
 
 
 
 user_input = st.chat_input("Ask any questions relevant to uploaded pdf")
 if user_input:
-    st.session_state.chat_history.append({"role": "user", "content": user_input})
     with st.chat_message("user"):
         st.markdown(user_input)
-
+        
     with st.chat_message("assistant"):
         response = st.session_state.conversation_chain({"question": user_input})
         assistant_response = response["answer"]
         st.write_stream(stream_data(assistant_response))
-        st.session_state.chat_history.append({"role": "assistant", "content": assistant_response})
 
 if __name__ =="__main__":
     load_dotenv()

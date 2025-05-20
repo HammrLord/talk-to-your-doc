@@ -50,31 +50,27 @@ def vector_store(chunks,store_path):
 
     return vectorstore
 
-def create_chain(vectorstore):
+def create_chain(vectorstore,memory):
     llm = ChatGroq(model="llama-3.1-8b-instant",
                    temperature=0.5)
 
-    retriever = vectorstore.as_retriever(  )
-    memory = ConversationBufferMemory(
-        llm=llm,
-        output_key="answer",
-        memory_key="chat_history",
-        return_messages=True
-    )
+    retriever = vectorstore.as_retriever()
     custom_prompt = PromptTemplate(
         input_variables=["context","chat_history","question"],
         template=(
-            '''You are a helpful assistant whose role is to read the given information and analyze the needs of the user:
-            Example: If the answer needs comparing things-->respond with tables, if question needs some visualizations-->respond
-            with necessary diagrams.
-            Before responding look at three things:
-            1. Context: {context}
-            2. Chat History: {chat_history}
-            3. Question: {question}
+            '''You are a helpful assistant. Use the following context and conversation history to answer the user question in a thoughtful, clear, and well-structured manner.
+            If the user is comparing items, consider responding with a table. If the question involves data, consider suggesting a visualization. Be concise, markdown-friendly, and insightful.
+            Context
+            "{context}"
+            Conversation history
+            "{chat_history}"
+            User Question
+            "{question}"
+"""
             **NOTE:
             1. If the Context is empty, ask user to ask questions related to the uploaded documents.
-            2. Help the users by asking them one single question they might want to know.
-            3. Format your responses using correct markdowns.**
+            2. Guide the users by recommending them some questions.
+            3. Properly format your responses using correct markdowns.**
             '''
         )
     )
