@@ -12,6 +12,8 @@ from langchain.prompts import PromptTemplate
 load_dotenv()
 
 def load_chunks(files):
+    # Load uploaded files, split their content into text chunks, and return all chunks.
+    
     working_dir = os.getcwd()
     all_chunks = []
     for file in files:
@@ -38,6 +40,7 @@ def load_chunks(files):
 
 
 def vector_store(chunks,store_path):
+    #Creates a vector store from text chunks.
     model = "sentence-transformers/all-MiniLM-L12-v2"
     model_kwargs = {'device': 'cpu'}
     encode_kwargs = {'normalize_embeddings': True}
@@ -51,6 +54,7 @@ def vector_store(chunks,store_path):
     return vectorstore
 
 def create_chain(vectorstore,memory):
+    #Creates a conversational retrieval chain.
     llm = ChatGroq(model="llama-3.1-8b-instant",
                    temperature=0.5)
 
